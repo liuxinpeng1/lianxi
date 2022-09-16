@@ -32,8 +32,13 @@
 	<div style="text-align: center;margin:20% auto;" class="startDiv">
 		<button type="button" class="layui-btn layui-btn-lg" id="start1">车站值班员</button>
 		<button type="button" class="layui-btn layui-btn-lg" id="start2">铁路通用部分</button>
+		<div style="display: none">
+			<br>
+			<button type="button" class="layui-btn layui-btn-lg" hidden id="start">车站-随机</button>
+			<button type="button" class="layui-btn layui-btn-lg" hidden id="start0">铁路-随机</button>
+		</div>
 		<div style="text-align: center;" class="">
-			<label class="layui-font-20" id="content">每次随机练习20道题，答对三次的题目将从题库移除</label>
+			<label class="layui-font-20" id="content"></label>
 		</div>
 	</div>
 
@@ -55,6 +60,14 @@
 			}
 		});
 
+		$("#start").bind({"click":function(){
+				location.href='./ceshi3.html';
+			}
+		});
+		$("#start0").bind({"click":function(){
+				location.href='./ceshi4.html';
+			}
+		});
 	});
 
 
