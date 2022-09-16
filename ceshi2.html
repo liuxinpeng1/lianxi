@@ -1,0 +1,339 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>答题</title>
+
+	<link rel="stylesheet" href="layui/css/layui.css">
+	<style>
+		.list{width: 100%;display: none;margin:20px 0 0 0;}
+		.wrong{
+			color:red
+		}
+		.right{
+			color:blue;
+		}
+		#list1{display: block;}
+		label{font-weight: bold;}
+		.layui-layer{margin: 0 auto;}
+		#color{
+			background:-webkit-linear-gradient(left,#147B96,#E6D205 25%,#147B96 50%,#E6D205 75%,#147B96);
+			color:transparent;
+			-webkit-background-clip:text;
+			background-size:200% 100%;
+			animation:masked-animation 1s infinite linear;
+		}
+		@-webkit-keyframes masked-animation {
+			100% {
+				background-position:-100% 0;
+			}
+		}
+	</style>
+
+</head>
+<body>
+
+<div style="  margin:40px auto;">
+
+	<!--这里是点击开始按钮启动，可有可无 <div style="text-align: center;" class="bg">
+<button class="layui-btn layui-btn-group" onClick="contentShow()">答题开始</button>
+	</div>-->
+
+	<div style="text-align: center;margin:20% auto;" class="startDiv">
+		<button type="button" class="layui-btn layui-btn-lg" id="startBtn">开始练习</button>
+	</div>
+	<div style="text-align: center; display: none" class="restartDiv">
+		<input type="hidden" id="wrongCount" value="0">
+		<button type="button" class="layui-btn " hidden id="restartBtn">重新练习</button>
+		<button type="button" class="layui-btn layui-btn-danger" id="wrongCountBtn">本次错误:0</button>
+		<button type="button" class="layui-btn layui-btn-danger" id="queTotal">题库剩余:900</button>
+	</div>
+
+	<div style="display: none"  class="layui-progress layui-progress-big" lay-filter="demo" lay-showPercent="true">
+		<div  class="layui-progress-bar layui-bg-blue" id="processDiv" lay-percent="2%"></div>
+	</div>
+
+
+
+
+	<div>
+		<div class="list" id="list1" style="display: none">
+			<input type="hidden" id="rightAns">
+			<input type="hidden" id="type">
+			<input type="hidden" id="index">
+			<input type="hidden" id="isCommit" value="0">
+
+
+			<label class="layui-font-20" id="currCount">1</label>
+			<label class="layui-font-20" id="content">111</label>
+			<div class="layui-form">
+				<div class="layui-form-item" id="chooseDiv">
+					<div class="layui-input-block">
+						<input type="radio" name="sex" value="男" title="男" checked="">
+					</div>
+					<div class="layui-input-block">
+						<input type="radio" name="sex" value="女" title="女">
+					</div>
+					<div class="layui-input-block">
+						<input type="radio" lay-filter="wh15" name="wh15" value="b" title="B:孙书华">
+					</div>
+					<div class="layui-input-block">
+						<input type="radio" lay-filter="wh15" name="wh15" value="c" title="C:杨梅">
+					</div>
+					<div class="layui-input-block">
+						<input type="radio" lay-filter="wh15" name="wh15" value="d" title="D:张艳">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div style="display: none;" class="btnDiv">
+		<button type="button" class="layui-btn"  id="commit">提交答案</button>
+		<button type="button" class="layui-btn"  id="next">下一题</button>
+	</div>
+
+
+	<div style="display: none;" class="resultDiv">
+		<label class="layui-font-20" id="result"></label>
+	</div>
+
+
+
+</div>
+
+<script src="layui/layui.js"></script>
+<script>
+
+	//一次答50个题 进度一个2%
+	var totalCount = 20;
+	var proceeVal =100/totalCount;
+	var rightCount=3;
+	var currentCount=1;
+	var jsonList=[];
+	layui.use(['layer', 'element','form','jquery'], function(){
+		var $ = layui.jquery,
+				layer = layui.layer,
+				element = layui.element,
+				form = layui.form;
+
+		/**
+		 * 开始
+		 * 初始只显示开始按钮，点击开始时，
+		 * 隐藏 开始按钮、重开按钮、下一题
+		 * 展示 进度条和进度、题目、提交
+		 */
+		$("#startBtn").bind({"click":function(){
+				$('.btnDiv').show();
+				$('.restartDiv').show();
+				//隐藏 开始按钮
+				$('.startDiv').hide();
+				//隐藏 重开按钮
+				$('#restartBtn').hide();
+				//隐藏下一题按钮
+				$('#next').hide();
+				//展示 进度条、题目、提交
+				$('.layui-progress').show();
+				//开始计算第一题
+				$('#list1').show();
+				//提交
+				$('#commit').show();
+				//展示题目
+				showQuest();
+				//展示进度条进度
+				element.progress('demo', 0+'%');
+			}});
+		/**
+		 * 下一题按钮
+		 * 1.判断是否点击了提交，否-返回
+		 * 2.题号+1，更新进度条
+		 * 3.判断是否答满题目，如果是，则隐藏 提交 和 下一题 按钮，展示重开按钮
+		 * 4.未答满题目，隐藏结果提示，隐藏下一题按钮，提交标识改为0，展示下一题，更改题号
+		 */
+		$("#next").bind({"click":function(){
+				if(jsonList.length==0){
+					layer.msg("无题可做！！！请退出")
+					$('#commit').hide();
+					$('#next').hide();
+					return;
+				}
+
+				var isCommit = $('#isCommit').val();
+				//判断是否提交
+				if(isCommit!=1){
+					return;
+				}
+				currentCount++;
+				if(currentCount>totalCount){
+					//隐藏 提交 和 下一题 按钮，展示重开按钮
+					$('#commit').hide();
+					$('#next').hide();
+					$('#restartBtn').show();
+					layer.msg('本次练习结束，请重新开始');
+					return;
+				}
+				//4.未答满题目，隐藏结果提示，隐藏下一题按钮，提交标识改为0展示下一题，更改题号
+				$('.resultDiv').hide();
+				$('#next').hide();
+				$('#isCommit').val('0');
+				$('#currCount').text(currentCount);
+				showQuest();
+			}
+		});
+
+		//重新练习 题号改为1，进度条更新，错题改为0，提交标识改为0，重开按钮隐藏，提交按钮显示
+		//展示下一题
+		//隐藏结果提示
+		$("#restartBtn").bind({"click":function(){
+				// 题号改为1，进度条更新
+				currentCount=1;
+				$('#currCount').text(currentCount);
+				element.progress('demo', proceeVal+'%');
+				//错题改为0
+				$('#wrongCount').val(0);
+				$('#wrongCountBtn').text('本次错误:'+0);
+				//提交标识改为0
+				$('#isCommit').val(0);
+				//重开按钮隐藏，提交按钮显示
+				$('#commit').show();
+				$('#restartBtn').hide();
+				showQuest();
+				//隐藏结果提示
+				$('.resultDiv').hide();
+			}
+		});
+		//提交按钮，判断是否已提交;判断是否有答案，设置提交标识；
+		$("#commit").bind({"click":function(){
+				//判断是否已提交，
+				var isCommit = $('#isCommit').val();
+				if(isCommit==1){
+					return;
+				}
+				//判断是否有答案，
+				var type = $('#type').val();
+				var rightAns= $('#rightAns').val();
+				var daan = "";
+				if(type=='(多选题)'){
+					var arr_box = [];
+					$('input[type=checkbox]:checked').each(function() {
+						arr_box.push($(this).val());
+					});
+					daan = arr_box.join(",");
+				}else if(type=='(单选题)') {
+					daan = $('input[name="radio"]:checked').val();
+				}else if(type=='(判断题)') {
+					daan = $('input[name="radio"]:checked').val();
+				}
+				if(!daan){
+					layer.msg('请提交答案！');
+					return false;
+				}
+				$('#isCommit').val(1);
+				var className='wrong';
+				var isRight="回答正确";
+				if(daan==rightAns){
+					if(!jsonList[$('#index').val()].count){
+						jsonList[$('#index').val()].count = 1;
+					}else{
+						jsonList[$('#index').val()].count+=1;
+					}
+					if(jsonList[$('#index').val()].count==rightCount){
+						jsonList.splice($('#index').val(),1);
+						if(jsonList.length==0){
+							layer.msg("无题可做！！！")
+						}
+					}
+					className='right';
+
+				}else{
+					var wrongCount = parseInt( $('#wrongCount').val())+1;
+					$('#wrongCount').val(wrongCount);
+					$('#wrongCountBtn').text('本次错误:'+wrongCount);
+					isRight="回答错误，正确答案是 "+rightAns;
+				}
+
+				$('#result').text(isRight);
+				$('#next').show();
+
+				$('.resultDiv').show();
+				$('.resultDiv').addClass(className);
+				element.progress('demo', proceeVal*(currentCount)+'%');
+
+			}
+		});
+		/**
+		 * 展示题目
+		 */
+		function showQuest(){
+			$("#chooseDiv").html("");
+			var questionTotalCount = jsonList.length;
+			$('#queTotal').text('题库剩余:'+questionTotalCount);
+			var randNum =  Math.floor(Math.random() * questionTotalCount) ;
+			console.log("随机数="+randNum);
+
+			var question = jsonList[randNum];
+			console.log(question);
+			console.log(question.content);
+			//题目
+			$('#content').text(question.content+question.type);
+			$('#type').val(question.type);
+			$('#index').val(randNum);
+			//答案
+			$('#rightAns').val(question.rightAns);
+			//可选答案
+			var canChoose = question.canChoose;
+			//
+			var type = question.type;
+			if(type=='(多选题)'){
+				var chooses = canChoose.split('###');
+				for(var index=0;index<chooses.length;index++){
+					var strs = chooses[index].split('===');
+
+					var radioStr ='<div  class="layui-input-block">'+
+							'<input type="checkbox" name="checkbox" lay-skin="primary" value="'+strs[0]+'" title="'+strs[0]+':'+strs[1]+'">'+
+							'</div>';
+					console.log(radioStr);
+					$("#chooseDiv").append(radioStr);
+				}
+			}else if(type=='(单选题)'){
+				console.log('单选题');
+
+				var chooses = canChoose.split('###');
+				for(var index=0;index<chooses.length;index++){
+					var strs = chooses[index].split('===');
+					var radioStr ='<div class="layui-input-block">'+
+							'<input type="radio" name="radio" value="'+strs[0]+'" title="'+strs[0]+':'+strs[1]+'">'+
+							'</div>';
+					$("#chooseDiv").append(radioStr);
+				}
+			}else if(type=='(判断题)'){
+				var radioStr ='<div class="layui-input-block">'+
+						'<input type="radio" name="radio" value="√" title="正确">'+
+						'</div>';
+				$("#chooseDiv").append(radioStr);
+				radioStr ='<div class="layui-input-block">'+
+						'<input type="radio" name="radio" value="×" title="错误">'+
+						'</div>';
+				$("#chooseDiv").append(radioStr);
+			}else {
+				console.log('error');
+			}
+
+			form.render();
+		}
+
+
+		$.get("./ceshi2.json", function(data) {
+			jsonList = data;
+		});
+	});
+
+
+
+
+</script>
+
+</body>
+</html>
