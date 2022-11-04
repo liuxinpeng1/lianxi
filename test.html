@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>测试</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="lib/layui-v2.5.5/css/layui.css" media="all">
+    <link rel="stylesheet" href="css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+
+      .d1{
+          background-color: #fff;
+          border-radius: 20px;
+          height: 350px;
+          margin: auto;
+          position: absolute;
+          top: -50px;
+          left: 0;
+          right: 0;
+          bottom: 0;
+      }
+      .data-add-btn{
+          width:150px;
+          height:250px;
+          background-color: black;
+      }
+
+
+    </style>
+</head>
+<body>
+<div >
+    <input type="text" id="test-value" value="0"></input>
+</div>
+
+<div class="d1 ">
+
+    <button class="d1 layui-btn layui-btn-normal layui-btn-sm data-add-btn" id="testBtn"> 抢 </button>
+
+</div>
+<script src="/lib/layui-v2.5.5/layui.js" charset="utf-8"></script>
+<script>
+    var count=0;
+    layui.use(['form'], function () {
+        var form = layui.form,
+            layer = layui.layer,
+            $ = layui.$;
+        $("#testBtn").bind("click",function(){
+            count=count+1;
+            $('#test-value').val(count);
+            // layer.msg('次数='+count);
+        });
+
+
+    });
+</script>
+</body>
+</html>
